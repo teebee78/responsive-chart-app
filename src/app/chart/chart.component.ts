@@ -1,18 +1,14 @@
   import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
   import * as d3 from 'd3';
+  import {transition} from '@angular/animations';
 
   @Component({
     selector: 'app-chart',
     templateUrl: './chart.component.html',
-    styleUrls: ['./chart.component.scss']
+    styleUrls: ['./chart.component.scss'],
+    host: { '(window: resize)': 'onResize($event)'}
   })
   export class ChartComponent implements OnInit {
-
-    constructor() {
-      this.xScale = d3.scaleLinear();
-      this.yScale = d3.scaleLinear();
-      this.data = this.createData();
-    }
 
     // inject the svg element
     @ViewChild('chart', { static: true})
@@ -21,6 +17,12 @@
     private readonly xScale: d3.ScaleLinear<number, number, never>;
     private readonly yScale: d3.ScaleLinear<number, number, never>;
     private readonly data: Array<{ x: number; y: number }>;
+
+    constructor() {
+      this.xScale = d3.scaleLinear();
+      this.yScale = d3.scaleLinear();
+      this.data = this.createData();
+    }
 
     ngOnInit(): void {
       /*
@@ -82,6 +84,31 @@
         .attr('fill', 'dimgray');
       }
 
+    onResize(event: any) {
+      const svg = d3.select(this.chartContainer?.nativeElement);
+
+      // adapt the scale functions to the new dimensions
+      this.xScale.rangeRound([0, this.innerWidth()]);
+      this.yScale.rangeRound([this.innerHeight(), 0]);
+
+      // the a axis needs to use the new xScale and be moved to the right place.
+      svg.select<SVGGElement>('#x-axis')
+        .transition().ease(d3.easePolyInOut).duration(500)
+        .attr('transform', `translate(0,${this.innerHeight()})`)
+        .call(d3.axisBottom(this.xScale));
+
+      // the y axis stays in place but needs to use the new yScale.
+      svg.select<SVGGElement>('#y-axis')
+        .transition().ease(d3.easePolyInOut).duration(500)
+        .call(d3.axisLeft(this.yScale));
+
+      // reposition or circles
+      svg.selectAll('circle')
+        .transition().ease(d3.easePolyInOut).duration(500)
+        .attr('cx', d => this.xScale((d as {x: number}).x))
+        .attr('cy', d => this.yScale((d as {y: number}).y));
+    }
+
     private innerWidth(): number {
       return this.chartContainer?.nativeElement.clientWidth
         - this.margin.left - this.margin.right;
@@ -91,7 +118,6 @@
       return this.chartContainer?.nativeElement.clientHeight
         - this.margin.top - this.margin.bottom;
     }
-
 
     private createData(): Array<{x: number, y: number}> {
       const data: Array<{x: number, y: number}> = [];
