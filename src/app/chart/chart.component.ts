@@ -1,6 +1,5 @@
   import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
   import * as d3 from 'd3';
-  import {transition} from '@angular/animations';
 
   @Component({
     selector: 'app-chart',
